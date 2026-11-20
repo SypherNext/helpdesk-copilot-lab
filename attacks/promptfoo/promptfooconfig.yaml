@@ -1,0 +1,31 @@
+# Lesson 14: run every attack in attacks/catalog.py against both lab apps with promptfoo.
+# Everything stays on your computer: the only targets are 127.0.0.1:18920 and 127.0.0.1:18921,
+# and grading is done by attacks/promptfoo/grade.py, not by a model or an online service.
+# Run from the repository root (see the README for the environment variables):
+#   npx promptfoo@latest eval -c attacks/promptfoo/promptfooconfig.yaml --no-cache --no-share -j 1
+# -j 1 sends one test at a time: Ollama on a CPU answers one request at a time, and
+# parallel tests only queue up until the app's model timeout cuts them off.
+description: Helpdesk Copilot attack catalog
+
+prompts:
+  - '{{message}}'
+
+providers:
+  - id: https
+    label: vulnerable
+    config: &chat_api
+      url: http://127.0.0.1:18920/api/chat
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        message: '{{prompt}}'
+      # Keep the whole JSON answer (reply, html, tool calls) so grade.py can check all of it.
+      transformResponse: 'JSON.stringify(json)'
+  - id: https
+    label: fixed
+    config:
+      <<: *chat_api
+      url: http://127.0.0.1:18921/api/chat
+
+tests: file://tests.py:create_tests
